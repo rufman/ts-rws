@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "alwaysStrict": true,
+    "declaration": true,
+    "declarationDir": "./typings",
+    "esModuleInterop": true,
+    "importHelpers": true,
+    "module": "commonjs",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "outDir": "lib",
+    "sourceMap": true,
+    "strict": true,
+    "target": "esnext"
+  },
+  "typedocOptions": {
+    "exclude": "test/**",
+    "excludeExternals": true,
+    "hideGenerator": true,
+    "ignoreCompilerErrors": true,
+    "mode": "modules",
+    "out": "docs",
+    "readme": "./README.md"
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "name": "ts-rws",
+  "version": "0.0.1",
+  "description": "ES6 Implementation of ReconnectingWebsocket",
+  "main": "lib/ts-rws.js",
+  "unpkg": "dist/ts-rws.js",
+  "module": "es/ts-rws.js",
+  "typings": "typings/index.d.ts",
+  "scripts": {
+    "build": "npm run clean && npm run build:es && npm run build:commonjs && npm run build:umd && npm run build:umd:min && npm run docs && npm run docs:md && npm run build:types",
+    "build:commonjs": "cross-env NODE_ENV=cjs rollup -c -o lib/ts-rws.js",
+    "build:es": "cross-env NODE_ENV=es rollup -c -o es/ts-rws.js",
+    "build:types": "tsc --emitDeclarationOnly -p tsconfig-build.json",
+    "build:umd": "cross-env NODE_ENV=development rollup -c -o dist/ts-rws.js",
+    "build:umd:min": "cross-env NODE_ENV=production rollup -c -o dist/ts-rws.min.js",
+    "clean": "rimraf dist lib es docs typings",
+    "docs": "typedoc --toc index --out docs/html",
+    "docs:md": "typedoc --theme markdown --out docs/md --hideSources",
+    "lint": "eslint --max-warnings 0 --ext .js,.ts *.js src/**/*.ts",
+    "preinstall": "npx npm-force-resolutions",
+    "prepare": "npm run lint && npm run type-check && npm run build",
+    "type-check": "tsc --noEmit"
+  },
+  "files": [
+    "dist",
+    "lib",
+    "es",
+    "src",
+    "typings"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rufman/rws.git"
+  },
+  "keywords": [
+    "websocket",
+    "reconnecting",
+    "es6"
+  ],
+  "author": "Stephane Rufer <stephane.rufer@gmail.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/rufman/rws#README.md",
+  "devDependencies": {
+    "@types/node": "^12.12.6",
+    "@typescript-eslint/eslint-plugin": "^2.6.1",
+    "@typescript-eslint/parser": "^2.6.1",
+    "cross-env": "^6.0.3",
+    "eslint": "^6.6.0",
+    "eslint-config-prettier": "^6.5.0",
+    "eslint-plugin-prettier": "^3.1.1",
+    "npm-force-resolutions": "0.0.3",
+    "prettier": "^1.18.2",
+    "rimraf": "^2.5.2",
+    "rollup": "^1.26.3",
+    "rollup-plugin-node-builtins": "^2.1.2",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-terser": "^5.1.2",
+    "rollup-plugin-typescript": "^1.0.1",
+    "tslib": "^1.10.0",
+    "typedoc": "^0.15.0",
+    "typedoc-plugin-markdown": "^2.2.11",
+    "typescript": "^3.7.2"
+  },
+  "resolutions": {
+    "bl": ">=1.0.1",
+    "semver": ">=4.3.2"
+  }
+}

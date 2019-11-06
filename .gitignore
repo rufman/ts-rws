@@ -1,0 +1,7 @@
+*.log
+dist
+docs
+es
+lib
+typings
+node_modules
