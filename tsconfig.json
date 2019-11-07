@@ -17,7 +17,6 @@
     "target": "esnext"
   },
   "typedocOptions": {
-    "exclude": "test/**",
     "excludeExternals": true,
     "hideGenerator": true,
     "ignoreCompilerErrors": true,

@@ -1,6 +1,6 @@
 {
   "name": "ts-rws",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "ES6 Implementation of ReconnectingWebsocket",
   "main": "lib/ts-rws.js",
   "unpkg": "dist/ts-rws.js",
@@ -14,8 +14,8 @@
     "build:umd": "cross-env NODE_ENV=development rollup -c -o dist/ts-rws.js",
     "build:umd:min": "cross-env NODE_ENV=production rollup -c -o dist/ts-rws.min.js",
     "clean": "rimraf dist lib es docs typings",
-    "docs": "typedoc --toc index --out docs/html",
-    "docs:md": "typedoc --theme markdown --out docs/md --hideSources",
+    "docs": "typedoc --plugin none --toc index --out docs/html",
+    "docs:md": "typedoc --plugin typedoc-plugin-markdown --theme markdown --out docs/md --hideSources",
     "lint": "eslint --max-warnings 0 --ext .js,.ts *.js src/**/*.ts",
     "preinstall": "npx npm-force-resolutions",
     "prepare": "npm run lint && npm run type-check && npm run build",
@@ -30,7 +30,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rufman/rws.git"
+    "url": "git+https://github.com/rufman/ts-rws.git"
   },
   "keywords": [
     "websocket",
@@ -39,7 +39,7 @@
   ],
   "author": "Stephane Rufer <stephane.rufer@gmail.com>",
   "license": "MIT",
-  "homepage": "https://github.com/rufman/rws#README.md",
+  "homepage": "https://github.com/rufman/ts-rws#README.md",
   "devDependencies": {
     "@types/node": "^12.12.6",
     "@typescript-eslint/eslint-plugin": "^2.6.1",
