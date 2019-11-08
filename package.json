@@ -1,6 +1,6 @@
 {
   "name": "ts-rws",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Typescript Implementation of a Reconnecting Websocket",
   "main": "lib/ts-rws.js",
   "unpkg": "dist/ts-rws.js",
