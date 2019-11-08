@@ -239,23 +239,23 @@ export default class RWS extends EventEmitter {
     }
   }
 
-  onconnecting(handler: Handler): void {
+  public onconnecting(handler: Handler): void {
     this.addHandler('onconnecting', handler);
   }
 
-  onopen(handler: Handler): void {
+  public onopen(handler: Handler): void {
     this.addHandler('onopen', handler);
   }
 
-  onmessage(handler: Handler): void {
+  public onmessage(handler: Handler): void {
     this.addHandler('onmessage', handler);
   }
 
-  onclose(handler: Handler): void {
+  public onclose(handler: Handler): void {
     this.addHandler('onclose', handler);
   }
 
-  onerror(handler: Handler): void {
+  public onerror(handler: Handler): void {
     this.addHandler('onerror', handler);
   }
 }
