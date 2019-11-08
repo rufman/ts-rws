@@ -36,15 +36,6 @@ export interface RWSEvent extends Event {
   isReconnect: boolean;
 }
 
-export type ConnectionHandlerTypes =
-  | 'onconnecting'
-  | 'onopen'
-  | 'onclose'
-  | 'onmessage'
-  | 'onerror';
-
-export type Handler = (event: RWSEvent) => void;
-
 export default class RWS extends EventEmitter {
   private url: string;
 
@@ -60,8 +51,6 @@ export default class RWS extends EventEmitter {
 
   private reconnectAttempts: number;
 
-  private handlers: Map<ConnectionHandlerTypes, Handler[]>;
-
   public protocol: string | null;
 
   public options: DefaultRWSOptions;
@@ -74,10 +63,11 @@ export default class RWS extends EventEmitter {
   public readonly CLOSED = WebSocket.CLOSED;
   public readonly DEFAULT_CODE = 1000;
 
-  public onconnecting: (handler: Handler) => void;
-  public onopen: (handler: Handler) => void;
-  public onclose: (handler: Handler) => void;
-  public onerror: (handler: Handler) => void;
+  public onconnecting: (event: Event) => Event;
+  public onopen: (event: Event) => Event;
+  public onclose: (event: Event) => Event;
+  public onerror: (event: Event) => Event;
+  public onmessage: (event: Event) => Event;
 
   constructor(url: string, options?: RWSOptions, protocols?: string | string[]) {
     super();
@@ -86,7 +76,6 @@ export default class RWS extends EventEmitter {
     this.url = url;
     this.options = Object.assign({}, DEFAULT_OPTIONS, options);
     this.protocols = protocols;
-    this.handlers = new Map();
 
     this.forcedClose = false;
     this.timedOut = false;
@@ -94,25 +83,26 @@ export default class RWS extends EventEmitter {
     this.readyState = WebSocket.CONNECTING;
 
     // Initialize callbacks
-    this.onconnecting = (handler: Handler): void => this.addHandler('onconnecting', handler);
-    this.onopen = (handler: Handler): void => this.addHandler('onopen', handler);
-    this.onclose = (handler: Handler): void => this.addHandler('onclose', handler);
-    this.onerror = (handler: Handler): void => this.addHandler('onerror', handler);
+    this.onconnecting = (event: Event): Event => event;
+    this.onopen = (event: Event): Event => event;
+    this.onclose = (event: Event): Event => event;
+    this.onerror = (event: Event): Event => event;
+    this.onmessage = (event: Event): Event => event;
 
     this.on('connecting', (event) => {
-      this.callHandlers('onconnecting', event);
+      this.onconnecting(event);
     });
     this.on('open', (event) => {
-      this.callHandlers('onopen', event);
+      this.onopen(event);
     });
     this.on('close', (event) => {
-      this.callHandlers('onclose', event);
+      this.onclose(event);
     });
     this.on('message', (event) => {
-      this.callHandlers('onmessage', event);
+      this.onmessage(event);
     });
     this.on('error', (event) => {
-      this.callHandlers('onerror', event);
+      this.onerror(event);
     });
 
     if (this.options.automaticOpen === true) {
@@ -128,21 +118,6 @@ export default class RWS extends EventEmitter {
 
   private rwsEmit(event: string | symbol, obj: RWSEvent): boolean {
     return this.emit(event, obj);
-  }
-
-  private callHandlers(type: ConnectionHandlerTypes, event: RWSEvent): void {
-    const openHandlers = this.handlers.get(type);
-    if (openHandlers) {
-      for (let i = 0; i < openHandlers.length; i += 1) {
-        openHandlers[i](event);
-      }
-    }
-  }
-
-  private addHandler(type: ConnectionHandlerTypes, handler: Handler): void {
-    const handlers = this.handlers.get(type) || [];
-    handlers.push(handler);
-    this.handlers.set(type, handlers);
   }
 
   open(reconnectAttempt = false): void {
