@@ -74,6 +74,11 @@ export default class RWS extends EventEmitter {
   public readonly CLOSED = WebSocket.CLOSED;
   public readonly DEFAULT_CODE = 1000;
 
+  public onconnecting: (handler: Handler) => void;
+  public onopen: (handler: Handler) => void;
+  public onclose: (handler: Handler) => void;
+  public onerror: (handler: Handler) => void;
+
   constructor(url: string, options?: RWSOptions, protocols?: string | string[]) {
     super();
 
@@ -87,6 +92,12 @@ export default class RWS extends EventEmitter {
     this.timedOut = false;
     this.reconnectAttempts = 0;
     this.readyState = WebSocket.CONNECTING;
+
+    // Initialize callbacks
+    this.onconnecting = (handler: Handler): void => this.addHandler('onconnecting', handler);
+    this.onopen = (handler: Handler): void => this.addHandler('onopen', handler);
+    this.onclose = (handler: Handler): void => this.addHandler('onclose', handler);
+    this.onerror = (handler: Handler): void => this.addHandler('onerror', handler);
 
     this.on('connecting', (event) => {
       this.callHandlers('onconnecting', event);
@@ -237,25 +248,5 @@ export default class RWS extends EventEmitter {
     if (this.ws) {
       this.ws.close();
     }
-  }
-
-  public onconnecting(handler: Handler): void {
-    this.addHandler('onconnecting', handler);
-  }
-
-  public onopen(handler: Handler): void {
-    this.addHandler('onopen', handler);
-  }
-
-  public onmessage(handler: Handler): void {
-    this.addHandler('onmessage', handler);
-  }
-
-  public onclose(handler: Handler): void {
-    this.addHandler('onclose', handler);
-  }
-
-  public onerror(handler: Handler): void {
-    this.addHandler('onerror', handler);
   }
 }
