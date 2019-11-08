@@ -36,7 +36,12 @@ export interface RWSEvent extends Event {
   isReconnect: boolean;
 }
 
-export type ConnectionHandlerTypes = 'connecting' | 'open' | 'close' | 'message' | 'error';
+export type ConnectionHandlerTypes =
+  | 'onconnecting'
+  | 'onopen'
+  | 'onclose'
+  | 'onmessage'
+  | 'onerror';
 
 export type Handler = (event: RWSEvent) => void;
 
@@ -84,19 +89,19 @@ export default class RWS extends EventEmitter {
     this.readyState = WebSocket.CONNECTING;
 
     this.on('connecting', (event) => {
-      this.callHandlers('connecting', event);
+      this.callHandlers('onconnecting', event);
     });
     this.on('open', (event) => {
-      this.callHandlers('open', event);
+      this.callHandlers('onopen', event);
     });
     this.on('close', (event) => {
-      this.callHandlers('close', event);
+      this.callHandlers('onclose', event);
     });
     this.on('message', (event) => {
-      this.callHandlers('message', event);
+      this.callHandlers('onmessage', event);
     });
     this.on('error', (event) => {
-      this.callHandlers('error', event);
+      this.callHandlers('onerror', event);
     });
 
     if (this.options.automaticOpen === true) {
@@ -235,22 +240,22 @@ export default class RWS extends EventEmitter {
   }
 
   onconnecting(handler: Handler): void {
-    this.addHandler('connecting', handler);
+    this.addHandler('onconnecting', handler);
   }
 
   onopen(handler: Handler): void {
-    this.addHandler('open', handler);
+    this.addHandler('onopen', handler);
   }
 
   onmessage(handler: Handler): void {
-    this.addHandler('message', handler);
+    this.addHandler('onmessage', handler);
   }
 
   onclose(handler: Handler): void {
-    this.addHandler('close', handler);
+    this.addHandler('onclose', handler);
   }
 
   onerror(handler: Handler): void {
-    this.addHandler('error', handler);
+    this.addHandler('onerror', handler);
   }
 }
