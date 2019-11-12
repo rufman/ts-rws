@@ -32,8 +32,14 @@ export interface DefaultRWSOptions {
   binaryType: BinaryType;
 }
 
-export interface RWSEvent extends Event {
-  isReconnect: boolean;
+export class ReconnectEvent extends Event {
+  readonly isReconnect: boolean;
+
+  constructor(reconnect: boolean, reconnectEvenInit?: CloseEventInit) {
+    super('open', reconnectEvenInit);
+
+    this.isReconnect = reconnect;
+  }
 }
 
 export default class RWS extends EventEmitter {
@@ -116,7 +122,7 @@ export default class RWS extends EventEmitter {
     }
   }
 
-  private rwsEmit(event: string | symbol, obj: RWSEvent): boolean {
+  private rwsEmit(event: string | symbol, obj: ReconnectEvent): boolean {
     return this.emit(event, obj);
   }
 
@@ -134,10 +140,7 @@ export default class RWS extends EventEmitter {
         return;
       }
     } else {
-      this.rwsEmit(
-        'connecting',
-        Object.assign({}, new Event('open'), { isReconnect: isReconnectAttempt }),
-      );
+      this.rwsEmit('connecting', new ReconnectEvent(isReconnectAttempt));
       this.reconnectAttempts = 0;
     }
 
@@ -153,7 +156,6 @@ export default class RWS extends EventEmitter {
     }, this.options.timeoutInterval);
 
     this.ws.onopen = (event): void => {
-      const rwsEvent: RWSEvent = Object.assign({}, event, { isReconnect: false });
       clearTimeout(this.timeout);
       this.dbg('RWS', 'onopen', this.url);
       if (this.ws) {
@@ -161,24 +163,21 @@ export default class RWS extends EventEmitter {
       }
       this.readyState = WebSocket.OPEN;
       this.reconnectAttempts = 0;
-      rwsEvent.isReconnect = isReconnectAttempt;
-      this.rwsEmit('open', rwsEvent);
+      this.rwsEmit('open', new ReconnectEvent(isReconnectAttempt, event));
       isReconnectAttempt = false;
     };
 
     this.ws.onclose = (event): void => {
-      const rwsEvent: RWSEvent = Object.assign({}, event, { isReconnect: false });
       clearTimeout(this.timeout);
       if (this.forcedClose) {
         this.readyState = WebSocket.CLOSED;
-        this.rwsEmit('close', rwsEvent);
+        this.emit('close', event);
       } else {
         if (!this.reconnectAttempts && !this.timedOut) {
           this.dbg('RWS', 'onclose', this.url);
-          this.rwsEmit('close', rwsEvent);
+          this.emit('close', event);
         }
-        rwsEvent.isReconnect = true;
-        this.rwsEmit('connecting', rwsEvent);
+        this.rwsEmit('connecting', new ReconnectEvent(true, event));
         const timeout =
           this.options.reconnectInterval *
           Math.pow(this.options.reconnectDecay, this.reconnectAttempts);
@@ -198,9 +197,8 @@ export default class RWS extends EventEmitter {
     };
 
     this.ws.onerror = (event): void => {
-      const rwsEvent: RWSEvent = Object.assign({}, event, { isReconnect: false });
       this.dbg('RWS', 'onerror', this.url, event);
-      this.rwsEmit('error', rwsEvent);
+      this.rwsEmit('error', new ReconnectEvent(false, event));
     };
   }
 
