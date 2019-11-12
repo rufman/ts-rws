@@ -34,11 +34,23 @@ export interface DefaultRWSOptions {
 
 export class ReconnectEvent extends Event {
   readonly isReconnect: boolean;
+  readonly code?: number;
+  readonly wasClean?: boolean;
+  readonly reason?: string;
 
-  constructor(reconnect: boolean, reconnectEvenInit?: CloseEventInit) {
+  constructor(
+    reconnect: boolean,
+    reconnectEvenInit?: CloseEventInit,
+    closeEventInit?: CloseEventInit,
+  ) {
     super('open', reconnectEvenInit);
 
     this.isReconnect = reconnect;
+    if (closeEventInit) {
+      this.code = closeEventInit.code;
+      this.wasClean = closeEventInit.wasClean;
+      this.reason = closeEventInit.reason;
+    }
   }
 }
 
@@ -177,7 +189,7 @@ export default class RWS extends EventEmitter {
           this.dbg('RWS', 'onclose', this.url);
           this.emit('close', event);
         }
-        this.rwsEmit('connecting', new ReconnectEvent(true, event));
+        this.rwsEmit('connecting', new ReconnectEvent(true, event, event));
         const timeout =
           this.options.reconnectInterval *
           Math.pow(this.options.reconnectDecay, this.reconnectAttempts);
@@ -198,7 +210,7 @@ export default class RWS extends EventEmitter {
 
     this.ws.onerror = (event): void => {
       this.dbg('RWS', 'onerror', this.url, event);
-      this.rwsEmit('error', new ReconnectEvent(false, event));
+      this.rwsEmit('error', new ReconnectEvent(false, event, event));
     };
   }
 
