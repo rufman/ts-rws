@@ -1,6 +1,6 @@
 {
   "name": "ts-rws",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "Typescript Implementation of a Reconnecting Websocket",
   "main": "lib/ts-rws.js",
   "unpkg": "dist/ts-rws.js",
@@ -17,7 +17,6 @@
     "docs": "typedoc --plugin none --toc index --out docs/html",
     "docs:md": "typedoc --plugin typedoc-plugin-markdown --theme markdown --out docs/md --hideSources",
     "lint": "eslint --max-warnings 0 --ext .js,.ts *.js src/**/*.ts",
-    "preinstall": "npx npm-force-resolutions",
     "prepare": "npm run lint && npm run type-check && npm run build",
     "type-check": "tsc --noEmit"
   },
@@ -50,7 +49,6 @@
     "eslint": "^6.6.0",
     "eslint-config-prettier": "^6.5.0",
     "eslint-plugin-prettier": "^3.1.1",
-    "npm-force-resolutions": "0.0.3",
     "prettier": "^1.18.2",
     "rimraf": "^2.5.2",
     "rollup": "^1.26.3",
