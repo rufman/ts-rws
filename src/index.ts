@@ -1,6 +1,18 @@
 import EventEmitter from 'events';
 
-const DEFAULT_OPTIONS = {
+export interface Options {
+  automaticOpen: boolean;
+  binaryType: BinaryType;
+  debug: boolean;
+  maxReconnectInterval: number;
+  reconnectDecay: number;
+  reconnectInterval: number;
+  timeoutInterval: number;
+
+  maxReconnectAttempts?: number;
+}
+
+const DEFAULT_OPTIONS: Options = {
   debug: false,
   automaticOpen: true,
   reconnectInterval: 1000,
@@ -10,40 +22,21 @@ const DEFAULT_OPTIONS = {
   binaryType: 'blob',
 };
 
-export interface RWSOptions {
-  debug?: boolean;
-  automaticOpen?: boolean;
-  reconnectInterval?: number;
-  maxReconnectInterval?: number;
-  reconnectDecay?: number;
-  timeoutInterval?: number;
-  maxReconnectAttempts?: number;
-  binaryType?: BinaryType;
-}
-
-export interface DefaultRWSOptions {
-  debug: boolean;
-  automaticOpen: boolean;
-  reconnectInterval: number;
-  maxReconnectInterval: number;
-  reconnectDecay: number;
-  timeoutInterval: number;
-  maxReconnectAttempts?: number;
-  binaryType: BinaryType;
-}
-
 export class ReconnectEvent extends Event {
-  readonly isReconnect: boolean;
-  readonly code?: number;
-  readonly wasClean?: boolean;
-  readonly reason?: string;
+  public readonly isReconnect: boolean;
 
-  constructor(
+  public readonly code?: number;
+
+  public readonly reason?: string;
+
+  public readonly wasClean?: boolean;
+
+  public constructor(
     reconnect: boolean,
-    reconnectEvenInit?: CloseEventInit,
+    reconnectEventInit?: CloseEventInit,
     closeEventInit?: CloseEventInit,
   ) {
-    super('open', reconnectEvenInit);
+    super('open', reconnectEventInit);
 
     this.isReconnect = reconnect;
     if (closeEventInit) {
@@ -54,26 +47,33 @@ export class ReconnectEvent extends Event {
   }
 }
 
-export default class RWS extends EventEmitter {
-  private url: string;
+/** `EventEmitter` event name to event type map. */
+interface ReconnectingWebSocketEventMap extends Pick<WebSocketEventMap, 'close' | 'message'> {
+  connecting: ReconnectEvent;
+  error: ReconnectEvent;
+  open: ReconnectEvent;
+}
+
+// Strongly type `EventEmitter` methods
+interface ReconnectingWebSocket {
+  emit<K extends keyof ReconnectingWebSocketEventMap>(
+    type: K,
+    event: ReconnectingWebSocketEventMap[K],
+  ): boolean;
+  on<K extends keyof ReconnectingWebSocketEventMap>(
+    type: K,
+    listener: (event: ReconnectingWebSocketEventMap[K]) => void,
+  ): this;
+}
+
+class ReconnectingWebSocket extends EventEmitter implements WebSocket {
+  private forcedClose = false;
+  private reconnectAttempts = 0;
+  private timedOut = false;
 
   private protocols?: string | string[];
-
-  private ws?: WebSocket;
-
-  private forcedClose: boolean;
-
-  private timedOut: boolean;
-
   private timeout?: number;
-
-  private reconnectAttempts: number;
-
-  public protocol: string | null;
-
-  public options: DefaultRWSOptions;
-
-  public readyState: WebSocket['CONNECTING'] | WebSocket['CLOSED'] | WebSocket['OPEN'];
+  private ws?: WebSocket;
 
   public readonly CONNECTING = WebSocket.CONNECTING;
   public readonly OPEN = WebSocket.OPEN;
@@ -81,47 +81,30 @@ export default class RWS extends EventEmitter {
   public readonly CLOSED = WebSocket.CLOSED;
   public readonly DEFAULT_CODE = 1000;
 
-  public onconnecting: (event: Event) => Event;
-  public onopen: (event: Event) => Event;
-  public onclose: (event: Event) => Event;
-  public onerror: (event: Event) => Event;
-  public onmessage: (event: Event) => Event;
+  public options: Options;
+  public readyState = WebSocket.CONNECTING;
+  public url: string;
 
-  constructor(url: string, options?: RWSOptions, protocols?: string | string[]) {
+  public onconnecting = (event: ReconnectEvent): ReconnectEvent => event;
+  /** Passed `ReconnectEvent` in reality. */
+  public onopen = (event: Event): Event => event;
+  public onclose = (event: CloseEvent): CloseEvent => event;
+  /** Passed `ReconnectEvent` in reality. */
+  public onerror = (event: Event): Event => event;
+  public onmessage = (event: MessageEvent): MessageEvent => event;
+
+  public constructor(url: string, options?: Partial<Options>, protocols?: string | string[]) {
     super();
 
-    this.protocol = null;
     this.url = url;
     this.options = Object.assign({}, DEFAULT_OPTIONS, options);
     this.protocols = protocols;
 
-    this.forcedClose = false;
-    this.timedOut = false;
-    this.reconnectAttempts = 0;
-    this.readyState = WebSocket.CONNECTING;
-
-    // Initialize callbacks
-    this.onconnecting = (event: Event): Event => event;
-    this.onopen = (event: Event): Event => event;
-    this.onclose = (event: Event): Event => event;
-    this.onerror = (event: Event): Event => event;
-    this.onmessage = (event: Event): Event => event;
-
-    this.on('connecting', (event) => {
-      this.onconnecting(event);
-    });
-    this.on('open', (event) => {
-      this.onopen(event);
-    });
-    this.on('close', (event) => {
-      this.onclose(event);
-    });
-    this.on('message', (event) => {
-      this.onmessage(event);
-    });
-    this.on('error', (event) => {
-      this.onerror(event);
-    });
+    this.on('connecting', (event) => this.onconnecting(event));
+    this.on('open', (event) => this.onopen(event));
+    this.on('close', (event) => this.onclose(event));
+    this.on('message', (event) => this.onmessage(event));
+    this.on('error', (event) => this.onerror(event));
 
     if (this.options.automaticOpen === true) {
       this.open(false);
@@ -134,11 +117,7 @@ export default class RWS extends EventEmitter {
     }
   }
 
-  private rwsEmit(event: string | symbol, obj: ReconnectEvent): boolean {
-    return this.emit(event, obj);
-  }
-
-  open(reconnectAttempt = false): void {
+  public open(reconnectAttempt = false): void {
     let isReconnectAttempt = reconnectAttempt;
     this.ws = new WebSocket(this.url, this.protocols);
     this.ws.binaryType = this.options.binaryType;
@@ -152,7 +131,7 @@ export default class RWS extends EventEmitter {
         return;
       }
     } else {
-      this.rwsEmit('connecting', new ReconnectEvent(isReconnectAttempt));
+      this.emit('connecting', new ReconnectEvent(isReconnectAttempt));
       this.reconnectAttempts = 0;
     }
 
@@ -170,12 +149,9 @@ export default class RWS extends EventEmitter {
     this.ws.onopen = (event): void => {
       clearTimeout(this.timeout);
       this.dbg('RWS', 'onopen', this.url);
-      if (this.ws) {
-        this.protocol = this.ws.protocol;
-      }
       this.readyState = WebSocket.OPEN;
       this.reconnectAttempts = 0;
-      this.rwsEmit('open', new ReconnectEvent(isReconnectAttempt, event));
+      this.emit('open', new ReconnectEvent(isReconnectAttempt, event));
       isReconnectAttempt = false;
     };
 
@@ -189,17 +165,16 @@ export default class RWS extends EventEmitter {
           this.dbg('RWS', 'onclose', this.url);
           this.emit('close', event);
         }
-        this.rwsEmit('connecting', new ReconnectEvent(true, event, event));
+
+        this.emit('connecting', new ReconnectEvent(true, event, event));
         const timeout =
           this.options.reconnectInterval *
           Math.pow(this.options.reconnectDecay, this.reconnectAttempts);
-        setTimeout(
-          () => {
-            this.reconnectAttempts++;
-            this.open(true);
-          },
-          timeout > this.options.maxReconnectInterval ? this.options.maxReconnectInterval : timeout,
-        );
+
+        setTimeout(() => {
+          this.reconnectAttempts++;
+          this.open(true);
+        }, Math.min(timeout, this.options.maxReconnectInterval));
       }
     };
 
@@ -210,11 +185,11 @@ export default class RWS extends EventEmitter {
 
     this.ws.onerror = (event): void => {
       this.dbg('RWS', 'onerror', this.url, event);
-      this.rwsEmit('error', new ReconnectEvent(false, event, event));
+      this.emit('error', new ReconnectEvent(false, event, event));
     };
   }
 
-  send(message: string): void {
+  public send(message: string): void {
     if (this.ws) {
       this.dbg('RWS', 'send', this.url, message);
       return this.ws.send(message);
@@ -222,16 +197,64 @@ export default class RWS extends EventEmitter {
     throw new Error('INVALID_STATE_ERR');
   }
 
-  close(code = this.DEFAULT_CODE, reason: string): void {
+  public close(code = this.DEFAULT_CODE, reason?: string): void {
     this.forcedClose = true;
     if (this.ws) {
       this.ws.close(code, reason);
     }
   }
 
-  refresh(): void {
+  public refresh(): void {
     if (this.ws) {
       this.ws.close();
     }
   }
+
+  public addEventListener<K extends keyof WebSocketEventMap>(
+    type: K,
+    listener: (this: WebSocket, ev: WebSocketEventMap[K]) => void,
+    options?: boolean | AddEventListenerOptions,
+  ): void {
+    if (this.ws) {
+      this.ws.addEventListener(type, listener, options);
+    }
+  }
+
+  public removeEventListener<K extends keyof WebSocketEventMap>(
+    type: K,
+    listener: (this: WebSocket, ev: WebSocketEventMap[K]) => void,
+    options?: boolean | AddEventListenerOptions,
+  ): void {
+    if (this.ws) {
+      this.ws.removeEventListener(type, listener, options);
+    }
+  }
+
+  public dispatchEvent(event: Event): boolean {
+    return this.ws ? this.ws.dispatchEvent(event) : false;
+  }
+
+  public get binaryType(): BinaryType {
+    return this.ws ? this.ws.binaryType : 'blob';
+  }
+
+  public set binaryType(value: BinaryType) {
+    if (this.ws) {
+      this.ws.binaryType = value;
+    }
+  }
+
+  public get bufferedAmount(): number {
+    return this.ws ? this.ws.bufferedAmount : 0;
+  }
+
+  public get extensions(): string {
+    return this.ws ? this.ws.extensions : '';
+  }
+
+  public get protocol(): string {
+    return this.ws ? this.ws.protocol : '';
+  }
 }
+
+export default ReconnectingWebSocket;

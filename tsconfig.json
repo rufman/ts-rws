@@ -16,6 +16,7 @@
     "strict": true,
     "target": "esnext"
   },
+  "files": ["src/index.ts"],
   "typedocOptions": {
     "excludeExternals": true,
     "hideGenerator": true,
