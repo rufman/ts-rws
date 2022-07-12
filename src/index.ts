@@ -4,7 +4,7 @@ import ReconnectEvent from './ReconnectEvent';
 
 export { ReconnectEvent };
 
-interface Options {
+export interface Options {
   /** WebSocket `binaryType`. */
   binaryType: BinaryType;
   /** Should emit `console.debug` log messages? */
